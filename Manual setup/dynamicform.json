@@ -1,0 +1,108 @@
+[
+    {
+      "label": "Select group",
+      "fields": [
+        {
+          "key": "searchfield",
+          "templateOptions": {
+            "label": "Search",
+            "placeholder": ""
+          },
+          "type": "input",
+          "summaryVisibility": "Hide element",
+          "requiresTemplateOptions": true
+        },
+        {
+          "key": "gridGroups",
+          "templateOptions": {
+            "label": "Select group",
+            "required": true,
+            "grid": {
+              "columns": [
+                {
+                  "headerName": "Name",
+                  "field": "name"
+                },
+                {
+                  "headerName": "Description",
+                  "field": "description"
+                }
+              ],
+              "height": 300,
+              "rowSelection": "single"
+            },
+            "dataSourceConfig": {
+              "dataSourceGuid": "9888d199-40e1-4e05-cc51-08d76389d64c",
+              "input": {
+                "propertyInputs": [
+                  {
+                    "propertyName": "searchValue",
+                    "otherFieldValue": {
+                      "otherFieldKey": "searchfield"
+                    }
+                  }
+                ]
+              },
+              "filter": {
+                "propertyInputs": []
+              }
+            }
+          },
+          "type": "grid",
+          "summaryVisibility": "Show",
+          "requiresTemplateOptions": true
+        }
+      ]
+    },
+    {
+      "label": "Manager",
+      "fields": [
+        {
+          "key": "managedBy",
+          "templateOptions": {
+            "label": "AD account manager",
+            "required": true,
+            "grid": {
+              "columns": [
+                {
+                  "headerName": "DisplayName",
+                  "field": "displayName"
+                },
+                {
+                  "headerName": "UserPrincipalName",
+                  "field": "UserPrincipalName"
+                },
+                {
+                  "headerName": "Department",
+                  "field": "Department"
+                },
+                {
+                  "headerName": "Title",
+                  "field": "Title"
+                },
+                {
+                  "headerName": "Description",
+                  "field": "Description"
+                }
+              ],
+              "height": 300,
+              "rowSelection": "single"
+            },
+            "dataSourceConfig": {
+              "dataSourceGuid": "9309d71c-f738-4778-84bd-08d7612f73b6",
+              "input": {
+                "propertyInputs": []
+              },
+              "filter": {
+                "propertyInputs": []
+              }
+            },
+            "useFilter": true
+          },
+          "type": "grid",
+          "summaryVisibility": "Show",
+          "requiresTemplateOptions": true
+        }
+      ]
+    }
+  ]
