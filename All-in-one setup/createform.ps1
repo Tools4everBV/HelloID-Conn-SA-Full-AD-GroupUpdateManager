@@ -311,7 +311,7 @@ $tmpInput = @'
 {"description":null,"translateDescription":false,"inputFieldType":1,"key":"selectedGroup","type":0,"options":0}
 '@ 
 $dataSourceGuid_1 = [PSCustomObject]@{} 
-Invoke-HelloIDDatasource -DatasourceName "AD-user-generate-table-groupmanagers" -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript -$tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_1) 
+Invoke-HelloIDDatasource -DatasourceName "AD-user-generate-table-groupmanagers" -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_1) 
 <# End: DataSource "AD-user-generate-table-groupmanagers" #>
 
 <# Begin: DataSource "AD-group-generate-table-wildcard" #>
@@ -357,7 +357,7 @@ $tmpInput = @'
 {"description":null,"translateDescription":false,"inputFieldType":1,"key":"searchValue","type":0,"options":1}
 '@ 
 $dataSourceGuid_0 = [PSCustomObject]@{} 
-Invoke-HelloIDDatasource -DatasourceName "AD-group-generate-table-wildcard" -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript -$tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_0) 
+Invoke-HelloIDDatasource -DatasourceName "AD-group-generate-table-wildcard" -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_0) 
 <# End: DataSource "AD-group-generate-table-wildcard" #>
 <# End: HelloID Data sources #>
 
