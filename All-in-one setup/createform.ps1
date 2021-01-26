@@ -46,7 +46,7 @@ function Invoke-HelloIDGlobalVariable {
                 secret   = $Secret;
                 ItemType = 0;
             }    
-            $body = $body | ConvertTo-Json
+            $body = ConvertTo-Json -InputObject $body
     
             $uri = ($script:PortalBaseUrl + "api/v1/automation/variable")
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
@@ -90,7 +90,7 @@ function Invoke-HelloIDAutomationTask {
                 objectGuid          = $ObjectGuid;
                 variables           = [Object[]]($Variables | ConvertFrom-Json);
             }
-            $body = $body | ConvertTo-Json
+            $body = ConvertTo-Json -InputObject $body
     
             $uri = ($script:PortalBaseUrl +"api/v1/automationtasks/powershell")
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
@@ -143,7 +143,7 @@ function Invoke-HelloIDDatasource {
                 script             = $DatasourcePsScript;
                 input              = [Object[]]($DatasourceInput | ConvertFrom-Json);
             }
-            $body = $body | ConvertTo-Json
+            $body = ConvertTo-Json -InputObject $body
       
             $uri = ($script:PortalBaseUrl +"api/v1/datasource")
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
@@ -181,9 +181,9 @@ function Invoke-HelloIDDynamicForm {
             #Create Dynamic form
             $body = @{
                 Name       = $FormName;
-                FormSchema = $FormSchema
+                FormSchema = [Object[]]($FormSchema | ConvertFrom-Json)
             }
-            $body = $body | ConvertTo-Json
+            $body = ConvertTo-Json -InputObject $body -Depth 100
     
             $uri = ($script:PortalBaseUrl +"api/v1/forms")
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
@@ -232,7 +232,7 @@ function Invoke-HelloIDDelegatedForm {
                 useFaIcon       = $UseFaIcon;
                 faIcon          = $FaIcon;
             }    
-            $body = $body | ConvertTo-Json
+            $body = ConvertTo-Json -InputObject $body
     
             $uri = ($script:PortalBaseUrl +"api/v1/delegatedforms")
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
@@ -261,11 +261,17 @@ function Invoke-HelloIDDelegatedForm {
 $tmpValue = @'
 [{ "OU": "OU=Disabled Users,OU=HelloID Training,DC=veeken,DC=local"},{ "OU": "OU=Users,OU=HelloID Training,DC=veeken,DC=local"},{"OU": "OU=External,OU=HelloID Training,DC=veeken,DC=local"}]
 '@ 
-Invoke-HelloIDGlobalVariable -Name "ADusersSearchOU" -Value $tmpValue -Secret "False" 
+$tmpName = @'
+ADusersSearchOU
+'@ 
+Invoke-HelloIDGlobalVariable -Name $tmpName -Value $tmpValue -Secret "False" 
 $tmpValue = @'
 [{ "OU": "OU=Groups,OU=HelloID Training,DC=veeken,DC=local"}]
 '@ 
-Invoke-HelloIDGlobalVariable -Name "ADgroupsSearchOU" -Value $tmpValue -Secret "False" 
+$tmpName = @'
+ADgroupsSearchOU
+'@ 
+Invoke-HelloIDGlobalVariable -Name $tmpName -Value $tmpValue -Secret "False" 
 <# End: HelloID Global Variables #>
 
 
@@ -308,10 +314,13 @@ $tmpModel = @'
 [{"key":"SamAccountName","type":0},{"key":"Title","type":0},{"key":"Description","type":0},{"key":"Company","type":0},{"key":"Department","type":0},{"key":"displayName","type":0},{"key":"UserPrincipalName","type":0},{"key":"selected","type":0}]
 '@ 
 $tmpInput = @'
-{"description":null,"translateDescription":false,"inputFieldType":1,"key":"selectedGroup","type":0,"options":0}
+[{"description":null,"translateDescription":false,"inputFieldType":1,"key":"selectedGroup","type":0,"options":0}]
 '@ 
 $dataSourceGuid_1 = [PSCustomObject]@{} 
-Invoke-HelloIDDatasource -DatasourceName "AD-user-generate-table-groupmanagers" -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_1) 
+$dataSourceGuid_1_Name = @'
+AD-user-generate-table-groupmanagers
+'@ 
+Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_1_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_1) 
 <# End: DataSource "AD-user-generate-table-groupmanagers" #>
 
 <# Begin: DataSource "AD-group-generate-table-wildcard" #>
@@ -354,10 +363,13 @@ $tmpModel = @'
 [{"key":"description","type":0},{"key":"name","type":0}]
 '@ 
 $tmpInput = @'
-{"description":null,"translateDescription":false,"inputFieldType":1,"key":"searchValue","type":0,"options":1}
+[{"description":null,"translateDescription":false,"inputFieldType":1,"key":"searchValue","type":0,"options":1}]
 '@ 
 $dataSourceGuid_0 = [PSCustomObject]@{} 
-Invoke-HelloIDDatasource -DatasourceName "AD-group-generate-table-wildcard" -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_0) 
+$dataSourceGuid_0_Name = @'
+AD-group-generate-table-wildcard
+'@ 
+Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_0_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_0) 
 <# End: DataSource "AD-group-generate-table-wildcard" #>
 <# End: HelloID Data sources #>
 
@@ -367,7 +379,10 @@ $tmpSchema = @"
 "@ 
 
 $dynamicFormGuid = [PSCustomObject]@{} 
-Invoke-HelloIDDynamicForm -FormName "AD Group - Update manager" -FormSchema $tmpSchema  -returnObject ([Ref]$dynamicFormGuid) 
+$dynamicFormName = @'
+AD Group - Update manager
+'@ 
+Invoke-HelloIDDynamicForm -FormName $dynamicFormName -FormSchema $tmpSchema  -returnObject ([Ref]$dynamicFormGuid) 
 <# END: Dynamic Form #>
 
 <# Begin: Delegated Form Access Groups and Categories #>
@@ -384,7 +399,7 @@ foreach($group in $delegatedFormAccessGroupNames) {
         Write-ColorOutput Red "HelloID (access)group '$group', message: $_"
     }
 }
-$delegatedFormAccessGroupGuids = ($delegatedFormAccessGroupGuids | ConvertTo-Json -Compress)
+$delegatedFormAccessGroupGuids = (ConvertTo-Json -InputObject $delegatedFormAccessGroupGuids -Compress)
 
 $delegatedFormCategoryGuids = @()
 foreach($category in $delegatedFormCategories) {
@@ -400,7 +415,7 @@ foreach($category in $delegatedFormCategories) {
         $body = @{
             name = @{"en" = $category};
         }
-        $body = $body | ConvertTo-Json
+        $body = ConvertTo-Json -InputObject $body
 
         $uri = ($script:PortalBaseUrl +"api/v1/delegatedformcategories")
         $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
@@ -410,12 +425,15 @@ foreach($category in $delegatedFormCategories) {
         Write-ColorOutput Green "HelloID Delegated Form category '$category' successfully created: $tmpGuid"
     }
 }
-$delegatedFormCategoryGuids = ($delegatedFormCategoryGuids | ConvertTo-Json -Compress)
+$delegatedFormCategoryGuids = (ConvertTo-Json -InputObject $delegatedFormCategoryGuids -Compress)
 <# End: Delegated Form Access Groups and Categories #>
 
 <# Begin: Delegated Form #>
 $delegatedFormRef = [PSCustomObject]@{guid = $null; created = $null} 
-Invoke-HelloIDDelegatedForm -DelegatedFormName "AD Group - Update manager" -DynamicFormGuid $dynamicFormGuid -AccessGroups $delegatedFormAccessGroupGuids -Categories $delegatedFormCategoryGuids -UseFaIcon "True" -FaIcon "fa fa-user-secret" -returnObject ([Ref]$delegatedFormRef) 
+$delegatedFormName = @'
+AD Group - Update manager
+'@
+Invoke-HelloIDDelegatedForm -DelegatedFormName $delegatedFormName -DynamicFormGuid $dynamicFormGuid -AccessGroups $delegatedFormAccessGroupGuids -Categories $delegatedFormCategoryGuids -UseFaIcon "True" -FaIcon "fa fa-user-secret" -returnObject ([Ref]$delegatedFormRef) 
 <# End: Delegated Form #>
 
 <# Begin: Delegated Form Task #>
@@ -456,8 +474,11 @@ try {
 '@ 
 
 	$delegatedFormTaskGuid = [PSCustomObject]@{} 
-	Invoke-HelloIDAutomationTask -TaskName "AD-group-set-managedby" -UseTemplate "False" -AutomationContainer "8" -Variables $tmpVariables -PowershellScript $tmpScript -ObjectGuid $delegatedFormRef.guid -ForceCreateTask $true -returnObject ([Ref]$delegatedFormTaskGuid) 
+$delegatedFormTaskName = @'
+AD-group-set-managedby
+'@
+	Invoke-HelloIDAutomationTask -TaskName $delegatedFormTaskName -UseTemplate "False" -AutomationContainer "8" -Variables $tmpVariables -PowershellScript $tmpScript -ObjectGuid $delegatedFormRef.guid -ForceCreateTask $true -returnObject ([Ref]$delegatedFormTaskGuid) 
 } else {
-	Write-ColorOutput Yellow "Delegated form 'AD Group - Update manager' already exists. Nothing to do with the Delegated Form task..." 
+	Write-ColorOutput Yellow "Delegated form '$delegatedFormName' already exists. Nothing to do with the Delegated Form task..." 
 }
 <# End: Delegated Form Task #>
