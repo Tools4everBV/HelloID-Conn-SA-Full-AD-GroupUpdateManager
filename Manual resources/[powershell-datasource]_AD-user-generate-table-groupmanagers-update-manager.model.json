@@ -1,6 +1,6 @@
 [
     {
-        "key":  "SamAccountName",
+        "key":  "Company",
         "type":  0
     },
     {
@@ -8,11 +8,15 @@
         "type":  0
     },
     {
+        "key":  "UserPrincipalName",
+        "type":  0
+    },
+    {
         "key":  "Description",
         "type":  0
     },
     {
-        "key":  "Company",
+        "key":  "selected",
         "type":  0
     },
     {
@@ -24,11 +28,7 @@
         "type":  0
     },
     {
-        "key":  "UserPrincipalName",
-        "type":  0
-    },
-    {
-        "key":  "selected",
+        "key":  "SamAccountName",
         "type":  0
     }
 ]
