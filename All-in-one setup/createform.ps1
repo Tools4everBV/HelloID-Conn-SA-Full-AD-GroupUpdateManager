@@ -2,8 +2,37 @@
 $script:PortalBaseUrl = "https://CUSTOMER.helloid.com"
 $apiKey = "API_KEY"
 $apiSecret = "API_SECRET"
-$delegatedFormAccessGroupNames = @("Users", "HID_administrators")
-$delegatedFormCategories = @("Active Directory", "Group Management")
+$delegatedFormAccessGroupNames = @("Users","HID_administrators") #Only unique names are supported. Groups must exist!
+$delegatedFormCategories = @("Active Directory","Group Management") #Only unique names are supported. Categories will be created if not exists.
+$script:debugLogging = $false #Default value: $false. If $true, the HelloID resource GUIDs will be shown in the logging
+$script:duplicateForm = $false #Default value: $false. If $true, the HelloID resource names will be changed to import a duplicate Form
+$script:duplicateFormSuffix = "_tmp" #the suffix will be added to all HelloID resource names to generate a duplicate form with different resource names
+
+#The following HelloID Global variables are used by this form. No existing HelloID global variables will be overriden only new ones are created.
+#NOTE: You can also update the HelloID Global variable values afterwards in the HelloID Admin Portal: https://<CUSTOMER>.helloid.com/admin/variablelibrary
+$globalHelloIDVariables = [System.Collections.Generic.List[object]]@();
+
+#Global variable #1 >> ADusersSearchOU
+$tmpName = @'
+ADusersSearchOU
+'@ 
+$tmpValue = @'
+[{ "OU": "OU=Disabled Users,OU=HelloID Training,DC=veeken,DC=local"},{ "OU": "OU=Users,OU=HelloID Training,DC=veeken,DC=local"},{"OU": "OU=External,OU=HelloID Training,DC=veeken,DC=local"}]
+'@ 
+$globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "False"});
+
+#Global variable #2 >> ADgroupsSearchOU
+$tmpName = @'
+ADgroupsSearchOU
+'@ 
+$tmpValue = @'
+[{ "OU": "OU=Groups,OU=HelloID Training,DC=veeken,DC=local"}]
+'@ 
+$globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "False"});
+
+
+#make sure write-information logging is visual
+$InformationPreference = "continue"
 
 # Create authorization headers with HelloID API key
 $pair = "$apiKey" + ":" + "$apiSecret"
@@ -14,18 +43,6 @@ $script:headers = @{"authorization" = $Key}
 # Define specific endpoint URI
 $script:PortalBaseUrl = $script:PortalBaseUrl.trim("/") + "/"
  
-function Write-ColorOutput($ForegroundColor) {
-    $fc = $host.UI.RawUI.ForegroundColor
-    $host.UI.RawUI.ForegroundColor = $ForegroundColor
-    
-    if ($args) {
-        Write-Output $args
-    } else {
-        $input | Write-Output
-    }
-
-    $host.UI.RawUI.ForegroundColor = $fc
-}
 
 function Invoke-HelloIDGlobalVariable {
     param(
@@ -33,6 +50,8 @@ function Invoke-HelloIDGlobalVariable {
         [parameter(Mandatory)][String][AllowEmptyString()]$Value,
         [parameter(Mandatory)][String]$Secret
     )
+
+    $Name = $Name + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
 
     try {
         $uri = ($script:PortalBaseUrl + "api/v1/automation/variables/named/$Name")
@@ -52,13 +71,13 @@ function Invoke-HelloIDGlobalVariable {
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
             $variableGuid = $response.automationVariableGuid
 
-            Write-ColorOutput Green "Variable '$Name' created: $variableGuid"
+            Write-Information "Variable '$Name' created$(if ($script:debugLogging -eq $true) { ": " + $variableGuid })"
         } else {
             $variableGuid = $response.automationVariableGuid
-            Write-ColorOutput Yellow "Variable '$Name' already exists: $variableGuid"
+            Write-Warning "Variable '$Name' already exists$(if ($script:debugLogging -eq $true) { ": " + $variableGuid })"
         }
     } catch {
-        Write-ColorOutput Red "Variable '$Name', message: $_"
+        Write-Error "Variable '$Name', message: $_"
     }
 }
 
@@ -74,6 +93,8 @@ function Invoke-HelloIDAutomationTask {
         [parameter(Mandatory)][Ref]$returnObject
     )
     
+    $TaskName = $TaskName + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
+
     try {
         $uri = ($script:PortalBaseUrl +"api/v1/automationtasks?search=$TaskName&container=$AutomationContainer")
         $responseRaw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false) 
@@ -96,14 +117,14 @@ function Invoke-HelloIDAutomationTask {
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
             $taskGuid = $response.automationTaskGuid
 
-            Write-ColorOutput Green "Powershell task '$TaskName' created: $taskGuid"  
+            Write-Information "Powershell task '$TaskName' created$(if ($script:debugLogging -eq $true) { ": " + $taskGuid })"
         } else {
             #Get TaskGUID
             $taskGuid = $response.automationTaskGuid
-            Write-ColorOutput Yellow "Powershell task '$TaskName' already exists: $taskGuid"
+            Write-Warning "Powershell task '$TaskName' already exists$(if ($script:debugLogging -eq $true) { ": " + $taskGuid })"
         }
     } catch {
-        Write-ColorOutput Red "Powershell task '$TaskName', message: $_"
+        Write-Error "Powershell task '$TaskName', message: $_"
     }
 
     $returnObject.Value = $taskGuid
@@ -120,6 +141,8 @@ function Invoke-HelloIDDatasource {
         [parameter()][String][AllowEmptyString()]$AutomationTaskGuid,
         [parameter(Mandatory)][Ref]$returnObject
     )
+
+    $DatasourceName = $DatasourceName + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
 
     $datasourceTypeName = switch($DatasourceType) { 
         "1" { "Native data source"; break} 
@@ -149,14 +172,14 @@ function Invoke-HelloIDDatasource {
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
               
             $datasourceGuid = $response.dataSourceGUID
-            Write-ColorOutput Green "$datasourceTypeName '$DatasourceName' created: $datasourceGuid"
+            Write-Information "$datasourceTypeName '$DatasourceName' created$(if ($script:debugLogging -eq $true) { ": " + $datasourceGuid })"
         } else {
             #Get DatasourceGUID
             $datasourceGuid = $response.dataSourceGUID
-            Write-ColorOutput Yellow "$datasourceTypeName '$DatasourceName' already exists: $datasourceGuid"
+            Write-Warning "$datasourceTypeName '$DatasourceName' already exists$(if ($script:debugLogging -eq $true) { ": " + $datasourceGuid })"
         }
     } catch {
-      Write-ColorOutput Red "$datasourceTypeName '$DatasourceName', message: $_"
+      Write-Error "$datasourceTypeName '$DatasourceName', message: $_"
     }
 
     $returnObject.Value = $datasourceGuid
@@ -169,6 +192,8 @@ function Invoke-HelloIDDynamicForm {
         [parameter(Mandatory)][Ref]$returnObject
     )
     
+    $FormName = $FormName + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
+
     try {
         try {
             $uri = ($script:PortalBaseUrl +"api/v1/forms/$FormName")
@@ -189,13 +214,13 @@ function Invoke-HelloIDDynamicForm {
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
     
             $formGuid = $response.dynamicFormGUID
-            Write-ColorOutput Green "Dynamic form '$formName' created: $formGuid"
+            Write-Information "Dynamic form '$formName' created$(if ($script:debugLogging -eq $true) { ": " + $formGuid })"
         } else {
             $formGuid = $response.dynamicFormGUID
-            Write-ColorOutput Yellow "Dynamic form '$FormName' already exists: $formGuid"
+            Write-Warning "Dynamic form '$FormName' already exists$(if ($script:debugLogging -eq $true) { ": " + $formGuid })"
         }
     } catch {
-        Write-ColorOutput Red "Dynamic form '$FormName', message: $_"
+        Write-Error "Dynamic form '$FormName', message: $_"
     }
 
     $returnObject.Value = $formGuid
@@ -213,7 +238,8 @@ function Invoke-HelloIDDelegatedForm {
         [parameter(Mandatory)][Ref]$returnObject
     )
     $delegatedFormCreated = $false
-    
+    $DelegatedFormName = $DelegatedFormName + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
+
     try {
         try {
             $uri = ($script:PortalBaseUrl +"api/v1/delegatedforms/$DelegatedFormName")
@@ -238,45 +264,34 @@ function Invoke-HelloIDDelegatedForm {
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
     
             $delegatedFormGuid = $response.delegatedFormGUID
-            Write-ColorOutput Green "Delegated form '$DelegatedFormName' created: $delegatedFormGuid"
+            Write-Information "Delegated form '$DelegatedFormName' created$(if ($script:debugLogging -eq $true) { ": " + $delegatedFormGuid })"
             $delegatedFormCreated = $true
 
             $bodyCategories = $Categories
             $uri = ($script:PortalBaseUrl +"api/v1/delegatedforms/$delegatedFormGuid/categories")
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $bodyCategories
-            Write-ColorOutput Green "Delegated form '$DelegatedFormName' updated with categories"
+            Write-Information "Delegated form '$DelegatedFormName' updated with categories"
         } else {
             #Get delegatedFormGUID
             $delegatedFormGuid = $response.delegatedFormGUID
-            Write-ColorOutput Yellow "Delegated form '$DelegatedFormName' already exists: $delegatedFormGuid"
+            Write-Warning "Delegated form '$DelegatedFormName' already exists$(if ($script:debugLogging -eq $true) { ": " + $delegatedFormGuid })"
         }
     } catch {
-        Write-ColorOutput Red "Delegated form '$DelegatedFormName', message: $_"
+        Write-Error "Delegated form '$DelegatedFormName', message: $_"
     }
 
     $returnObject.value.guid = $delegatedFormGuid
     $returnObject.value.created = $delegatedFormCreated
 }
 <# Begin: HelloID Global Variables #>
-$tmpValue = @'
-[{ "OU": "OU=Disabled Users,OU=HelloID Training,DC=veeken,DC=local"},{ "OU": "OU=Users,OU=HelloID Training,DC=veeken,DC=local"},{"OU": "OU=External,OU=HelloID Training,DC=veeken,DC=local"}]
-'@ 
-$tmpName = @'
-ADusersSearchOU
-'@ 
-Invoke-HelloIDGlobalVariable -Name $tmpName -Value $tmpValue -Secret "False" 
-$tmpValue = @'
-[{ "OU": "OU=Groups,OU=HelloID Training,DC=veeken,DC=local"}]
-'@ 
-$tmpName = @'
-ADgroupsSearchOU
-'@ 
-Invoke-HelloIDGlobalVariable -Name $tmpName -Value $tmpValue -Secret "False" 
+foreach ($item in $globalHelloIDVariables) {
+	Invoke-HelloIDGlobalVariable -Name $item.name -Value $item.value -Secret $item.secret 
+}
 <# End: HelloID Global Variables #>
 
 
 <# Begin: HelloID Data sources #>
-<# Begin: DataSource "AD-user-generate-table-groupmanagers" #>
+<# Begin: DataSource "AD-user-generate-table-groupmanagers-update-manager" #>
 $tmpPsScript = @'
 try {
     $searchOUs = $ADusersSearchOU
@@ -311,19 +326,19 @@ try {
 }
 '@ 
 $tmpModel = @'
-[{"key":"SamAccountName","type":0},{"key":"Title","type":0},{"key":"Description","type":0},{"key":"Company","type":0},{"key":"Department","type":0},{"key":"displayName","type":0},{"key":"UserPrincipalName","type":0},{"key":"selected","type":0}]
+[{"key":"Company","type":0},{"key":"Title","type":0},{"key":"UserPrincipalName","type":0},{"key":"Description","type":0},{"key":"selected","type":0},{"key":"Department","type":0},{"key":"displayName","type":0},{"key":"SamAccountName","type":0}]
 '@ 
 $tmpInput = @'
-[{"description":null,"translateDescription":false,"inputFieldType":1,"key":"selectedGroup","type":0,"options":0}]
+[{"description":null,"translateDescription":false,"inputFieldType":1,"key":"selectedGroup","type":0,"options":1}]
 '@ 
 $dataSourceGuid_1 = [PSCustomObject]@{} 
 $dataSourceGuid_1_Name = @'
-AD-user-generate-table-groupmanagers
+AD-user-generate-table-groupmanagers-update-manager
 '@ 
 Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_1_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_1) 
-<# End: DataSource "AD-user-generate-table-groupmanagers" #>
+<# End: DataSource "AD-user-generate-table-groupmanagers-update-manager" #>
 
-<# Begin: DataSource "AD-group-generate-table-wildcard" #>
+<# Begin: DataSource "AD-group-generate-table-wildcard-update-manager" #>
 $tmpPsScript = @'
 try {
     $searchValue = $datasource.searchValue
@@ -367,10 +382,10 @@ $tmpInput = @'
 '@ 
 $dataSourceGuid_0 = [PSCustomObject]@{} 
 $dataSourceGuid_0_Name = @'
-AD-group-generate-table-wildcard
+AD-group-generate-table-wildcard-update-manager
 '@ 
 Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_0_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_0) 
-<# End: DataSource "AD-group-generate-table-wildcard" #>
+<# End: DataSource "AD-group-generate-table-wildcard-update-manager" #>
 <# End: HelloID Data sources #>
 
 <# Begin: Dynamic Form "AD Group - Update manager" #>
@@ -394,12 +409,12 @@ foreach($group in $delegatedFormAccessGroupNames) {
         $delegatedFormAccessGroupGuid = $response.groupGuid
         $delegatedFormAccessGroupGuids += $delegatedFormAccessGroupGuid
         
-        Write-ColorOutput Green "HelloID (access)group '$group' successfully found: $delegatedFormAccessGroupGuid"
+        Write-Information "HelloID (access)group '$group' successfully found$(if ($script:debugLogging -eq $true) { ": " + $delegatedFormAccessGroupGuid })"
     } catch {
-        Write-ColorOutput Red "HelloID (access)group '$group', message: $_"
+        Write-Error "HelloID (access)group '$group', message: $_"
     }
 }
-$delegatedFormAccessGroupGuids = (ConvertTo-Json -InputObject $delegatedFormAccessGroupGuids -Compress)
+$delegatedFormAccessGroupGuids = ($delegatedFormAccessGroupGuids | Select-Object -Unique | ConvertTo-Json -Compress)
 
 $delegatedFormCategoryGuids = @()
 foreach($category in $delegatedFormCategories) {
@@ -409,9 +424,9 @@ foreach($category in $delegatedFormCategories) {
         $tmpGuid = $response.delegatedFormCategoryGuid
         $delegatedFormCategoryGuids += $tmpGuid
         
-        Write-ColorOutput Green "HelloID Delegated Form category '$category' successfully found: $tmpGuid"
+        Write-Information "HelloID Delegated Form category '$category' successfully found$(if ($script:debugLogging -eq $true) { ": " + $tmpGuid })"
     } catch {
-        Write-ColorOutput Yellow "HelloID Delegated Form category '$category' not found"
+        Write-Warning "HelloID Delegated Form category '$category' not found"
         $body = @{
             name = @{"en" = $category};
         }
@@ -422,7 +437,7 @@ foreach($category in $delegatedFormCategories) {
         $tmpGuid = $response.delegatedFormCategoryGuid
         $delegatedFormCategoryGuids += $tmpGuid
 
-        Write-ColorOutput Green "HelloID Delegated Form category '$category' successfully created: $tmpGuid"
+        Write-Information "HelloID Delegated Form category '$category' successfully created$(if ($script:debugLogging -eq $true) { ": " + $tmpGuid })"
     }
 }
 $delegatedFormCategoryGuids = (ConvertTo-Json -InputObject $delegatedFormCategoryGuids -Compress)
@@ -479,6 +494,6 @@ AD-group-set-managedby
 '@
 	Invoke-HelloIDAutomationTask -TaskName $delegatedFormTaskName -UseTemplate "False" -AutomationContainer "8" -Variables $tmpVariables -PowershellScript $tmpScript -ObjectGuid $delegatedFormRef.guid -ForceCreateTask $true -returnObject ([Ref]$delegatedFormTaskGuid) 
 } else {
-	Write-ColorOutput Yellow "Delegated form '$delegatedFormName' already exists. Nothing to do with the Delegated Form task..." 
+	Write-Warning "Delegated form '$delegatedFormName' already exists. Nothing to do with the Delegated Form task..." 
 }
 <# End: Delegated Form Task #>
