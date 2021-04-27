@@ -44,3 +44,6 @@ This Powershell data source runs an Active Directory query to receive selectable
 
 ### Delegated form task 'AD-group-set-managedby'
 This delegated form task will update the AD group manager.
+
+# HelloID Docs
+The official HelloID documentation can be found at: https://docs.helloid.com/
