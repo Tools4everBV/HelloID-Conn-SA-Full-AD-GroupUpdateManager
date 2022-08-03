@@ -51,7 +51,7 @@ This Powershell data source runs an Active Directory query to search for matchin
 ### Powershell data source 'AD-user-generate-table-groupmanagers-update-manager'
 This Powershell data source runs an Active Directory query to receive selectable AD user accounts. The current AD group manager is default selected. It uses an array of Active Directory OU's specified as HelloID user defined variable named _"ADusersSearchOU"_ to specify the search scope.
 
-### Delegated form task 'AD-group-set-managedby'
+### Delegated form task 'AD Group - Update manager'
 This delegated form task will update the AD group manager.
 
 ## Getting help
